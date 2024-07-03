@@ -27,11 +27,11 @@ class Processing:
     def segment(self):
         n=1
         target = o3d.io.read_point_cloud(self.plow)
-        o3d.io.write_point_cloud("data\\result\\seg.ply", target)
+        o3d.io.write_point_cloud("seg.ply", target)
 
         while n<=self.num:
             target.clear()
-            target = o3d.io.read_point_cloud("data\\result\\seg.ply")
+            target = o3d.io.read_point_cloud("seg.ply")
             source = o3d.io.read_point_cloud(self.stick)
             source, target, source_down, target_down, source_fpfh, target_fpfh = prepare_dataset(source, target,self.voxel_size)
             result_ransac = execute_global_registration(source_down, target_down, source_fpfh, target_fpfh, self.voxel_size)
@@ -48,7 +48,7 @@ class Processing:
             dists = np.asarray(dists)
             seg= np.where(dists < 6)[0]
             part = target.select_by_index(seg)
-            o3d.io.write_point_cloud("data\\seg\\part{}.ply".format(n), part)
+            o3d.io.write_point_cloud("part{}.ply".format(n), part)
             # 复制与转换后的扫描杆距离小于6mm的点，这些点就是segmented part
             ind = np.where(dists > 0.5)[0]
             # nd = np.where(dists < 1)[0]
@@ -60,7 +60,7 @@ class Processing:
             target.paint_uniform_color([0, 0.651, 0.929])
             o3d.visualization.draw_geometries([part,target], zoom=0.3412, front=[0.4257, -0.2125, -0.8795],
                                               lookat=[2.6172, 2.0475, 1.532], up=[-0.0694, -0.9768, 0.2024])
-            o3d.io.write_point_cloud("data\\result\\seg.ply", target)
+            o3d.io.write_point_cloud("seg.ply", target)
             # 每一步保存一次去除过扫描杆的模型，以进行下一步
             source.clear()
             part.clear()
@@ -69,7 +69,7 @@ class Processing:
                                           lookat=[2.6172, 2.0475, 1.532], up=[-0.0694, -0.9768, 0.2024])
 
     def reg(self):
-        source = o3d.io.read_point_cloud("data\\result\\seg.ply")
+        source = o3d.io.read_point_cloud("seg.ply")
         # source = o3d.io.read_point_cloud("data\\source\\low.ply")
         target = o3d.io.read_point_cloud(self.pref)
         source, target, source_down, target_down, source_fpfh, target_fpfh = prepare_dataset(source, target, self.voxel_size)
@@ -87,16 +87,16 @@ class Processing:
         # 新建一个模型用来保存所有的矫正后的部分
         start = time.time()
         while n <= self.num:
-            source1 = o3d.io.read_point_cloud("data\\seg\\part{}.ply".format(n))
+            source1 = o3d.io.read_point_cloud("part{}.ply".format(n))
             result_icp = refine_registration(source1, target,
                                              self.voxel_size, result_ransac)
             source1.transform(result_icp.transformation)
-            o3d.io.write_point_cloud("data\\result\\result_part{}.ply".format(n), source1)
+            o3d.io.write_point_cloud("result_part{}.ply".format(n), source1)
             reg+=source1
             source1.clear()
             n+=1
         print("ICP配准花费了： %.3f 秒.\n" % (time.time() - start))
-        o3d.io.write_point_cloud("data\\result\\result.ply", reg)
+        o3d.io.write_point_cloud("result.ply", reg)
         o3d.visualization.draw_geometries([reg, target], zoom=0.3412,
                                           front=[0.4257, -0.2125, -0.8795],
                                           lookat=[2.6172, 2.0475, 1.532], up=[-0.0694, -0.9768, 0.2024])
@@ -109,7 +109,7 @@ class Processing:
         for i in range(self.num):
             voxel_size = 0.05  # 下采样的距离。当这个参数增大时，精确度会迅速下降，当这个参数减小时，耗时会急剧增加
             source = o3d.io.read_point_cloud(refpod)
-            target = o3d.io.read_point_cloud("data\\result\\result_part{}.ply".format(i+1))
+            target = o3d.io.read_point_cloud("result_part{}.ply".format(i+1))
 
             source, target, source_down, target_down, source_fpfh, target_fpfh = prepare_dataset(source, target,
                                                                                                  voxel_size)
