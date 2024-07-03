@@ -39,7 +39,8 @@ class Processing:
             # source1 = copy.deepcopy(source)
             # source.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.2, max_nn=50))
             # target.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.2, max_nn=50))
-            result_icp = refine_registration(source_down, target_down, self.voxel_size, result_ransac)
+             result_icp = refine_registration(source_down, target_down, self.voxel_size, result_ransac)
+            # 这一步是配准扫描杆模型和低精度模型，以确定低精度模型上扫描杆的位置
             # result_part = copy.deepcopy(source)
             source.transform(result_icp.transformation)
             # o3d.visualization.draw_geometries([source])
@@ -48,17 +49,19 @@ class Processing:
             seg= np.where(dists < 6)[0]
             part = target.select_by_index(seg)
             o3d.io.write_point_cloud("data\\seg\\part{}.ply".format(n), part)
+            # 复制与转换后的扫描杆距离小于6mm的点，这些点就是segmented part
             ind = np.where(dists > 0.5)[0]
             # nd = np.where(dists < 1)[0]
             # target1=copy.deepcopy(target)
             # source1 = target1.select_by_index(nd)
             target = target.select_by_index(ind)
-            #
+            # 去除与转换后的扫描杆距离小于0.5mm的点，这一步的目的是防止多次定位到同一个扫描杆
             part.paint_uniform_color([1, 0.706, 0])
             target.paint_uniform_color([0, 0.651, 0.929])
             o3d.visualization.draw_geometries([part,target], zoom=0.3412, front=[0.4257, -0.2125, -0.8795],
                                               lookat=[2.6172, 2.0475, 1.532], up=[-0.0694, -0.9768, 0.2024])
             o3d.io.write_point_cloud("data\\result\\seg.ply", target)
+            # 每一步保存一次去除过扫描杆的模型，以进行下一步
             source.clear()
             part.clear()
             n+=1
@@ -77,11 +80,11 @@ class Processing:
         o3d.visualization.draw_geometries([source.transform(result_ransac.transformation),target], zoom=0.3412, front=[0.4257, -0.2125, -0.8795],
                                           lookat=[2.6172, 2.0475, 1.532], up=[-0.0694, -0.9768, 0.2024])
         print("ransac配准花费了： %.3f 秒.\n" % (time.time() - start))
-
         # 这是下面是由于对于新一批的文件，单纯的ransac表现不好，故增加一次ICP来使得结果更加准确
 
         n=1
         reg = o3d.geometry.PointCloud()
+        # 新建一个模型用来保存所有的矫正后的部分
         start = time.time()
         while n <= self.num:
             source1 = o3d.io.read_point_cloud("data\\seg\\part{}.ply".format(n))
