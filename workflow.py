@@ -6,7 +6,7 @@ import json
 class Processing:
 
     def __init__(self, num, prod, pref, plow):
-        # 这些数据分别是：连接杆的数量、连接杆文件、参考模型和低精度模型的路径，在考虑加上连接杆点的位置
+        # 这些数据分别是：扫描模型上连接杆的数量、连接杆ply文件、参考模型和低精度模型的路径，ply文件可以使用resample对stl文件进行重采样得到，也可以通过其他软件进行处理。
         self.num=num
         self.stick=prod
         self.pref=pref
